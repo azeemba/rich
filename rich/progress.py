@@ -148,7 +148,7 @@ def track(
                 finished_style=finished_style,
                 pulse_style=pulse_style,
             ),
-            TextColumn("[progress.percentage]{task.percentage:>3.0f}%"),
+            TaskProgressColumn(),
             TimeRemainingColumn(),
         )
     )
@@ -675,6 +675,43 @@ class TimeElapsedColumn(ProgressColumn):
         return Text(str(delta), style="progress.elapsed")
 
 
+class TaskProgressColumn(TextColumn):
+    """A column displaying the progress of a task."""
+
+    def __init__(
+        self,
+        text_format: str = "[progress.percentage]{task.percentage:>3.0f}%",
+        text_format_no_percentage: str = "",
+        style: StyleType = "none",
+        justify: JustifyMethod = "left",
+        markup: bool = True,
+        highlighter: Optional[Highlighter] = None,
+        table_column: Optional[Column] = None,
+    ) -> None:
+        self.text_format_no_percentage = text_format_no_percentage
+        super().__init__(
+            text_format=text_format,
+            style=style,
+            justify=justify,
+            markup=markup,
+            highlighter=highlighter,
+            table_column=table_column,
+        )
+
+    def render(self, task: "Task") -> Text:
+        text_format = (
+            self.text_format_no_percentage if task.total is None else self.text_format
+        )
+        _text = text_format.format(task=task)
+        if self.markup:
+            text = Text.from_markup(_text, style=self.style, justify=self.justify)
+        else:
+            text = Text(_text, style=self.style, justify=self.justify)
+        if self.highlighter:
+            self.highlighter.highlight(text)
+        return text
+
+
 class TimeRemainingColumn(ProgressColumn):
     """Renders estimated time remaining.
 
@@ -704,6 +741,9 @@ class TimeRemainingColumn(ProgressColumn):
         else:
             task_time = task.time_remaining
             style = "progress.remaining"
+
+        if task.total is None:
+            return Text("", style=style)
 
         if task_time is None:
             return Text("--:--" if self.compact else "-:--:--", style=style)
@@ -1042,7 +1082,7 @@ class Progress(JupyterMixin):
         return (
             TextColumn("[progress.description]{task.description}"),
             BarColumn(),
-            TextColumn("[progress.percentage]{task.percentage:>3.0f}%"),
+            TaskProgressColumn(),
             TimeRemainingColumn(),
         )
 
@@ -1558,7 +1598,6 @@ class Progress(JupyterMixin):
 
 if __name__ == "__main__":  # pragma: no coverage
 
-    import random
     import time
 
     from .panel import Panel
@@ -1611,13 +1650,13 @@ if __name__ == "__main__":  # pragma: no coverage
         transient=False,
     ) as progress:
 
-        task1 = progress.add_task("[red]Downloading", total=1000)
-        task2 = progress.add_task("[green]Processing", total=1000)
-        task3 = progress.add_task("[yellow]Thinking", total=None)
+        # task1 = progress.add_task("[red]Downloading", total=1000)
+        # task2 = progress.add_task("[green]Processing", total=1000)
+        task3 = progress.add_task("[yellow]A progress with a `None` total", total=None)
 
         while not progress.finished:
-            progress.update(task1, advance=0.5)
-            progress.update(task2, advance=0.3)
-            time.sleep(0.01)
-            if random.randint(0, 100) < 1:
-                progress.log(next(examples))
+            # progress.update(task1, advance=0.5)
+            # progress.update(task2, advance=0.3)
+            time.sleep(1)
+            # if random.randint(0, 100) < 1:
+            #     progress.log(next(examples))
